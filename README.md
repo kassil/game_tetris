@@ -1,6 +1,6 @@
-# cpp_sample
+# Tetris Game
 
-This is a C++ project that implements a state machine for demonstration purposes.
+This is a simple implementation of the classic Tetris game in C++. It features a basic game loop, a falling piece generator, collision detection, and line completion detection.
 
 ## Build Instructions
 
@@ -14,15 +14,22 @@ To build this project, you will need CMake and a C++ compiler installed on your 
 
 The executable `myapp` will be located in the `build` directory.
 
-## Usage
+## How to Play
 
-To run the project, execute the generated executable. 
+To play the game, simply run the executable file `tetris.exe`. The game will start automatically, and you can control the falling pieces using the following keys:
 
-`./myapp`
+- `LEFT ARROW`: move the piece left
+- `RIGHT ARROW`: move the piece right
+- `DOWN ARROW`: move the piece down faster
+- `UP ARROW`: rotate the piece
 
-At this time the project does not expect additional command-line arguments or input files.
+The goal of the game is to complete as many lines as possible by filling them with falling pieces. Each completed line will be removed, and you will score points for each completed line.
 
-## Contributing
+## Requirements
 
-Please feel free to contribute to this project by opening a pull request.
+To compile and run the game, you will need a C++11-compatible compiler, such as GCC or Clang.
+
+## License
+
+This project is licensed under the MIT License. See the LICENSE file for details.
 
