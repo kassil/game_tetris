@@ -7,7 +7,8 @@
 #include <ctime>
 #include <unistd.h>
 
-enum Cmd {
+enum Cmd
+{
     Cmd_None,
     Cmd_Down,
     Cmd_Left,
@@ -23,58 +24,61 @@ enum MoveResult
     Arrested,
 };
 
-void select_piece(piece_type& piece);
+struct Game
+{
+    // Define the board and piece matrices
+    board_type board;
+    piece_type piece;
 
-void init_game();
-void start_piece();
-int move_piece(Cmd direction, piece_type& piece, index_type& pos);
+    // Define the current position of the falling piece
+    // i is the current y-coordinate (row) of the top-left corner of the falling piece
+    // j is the current x-coordinate (column) of the top-left corner of the falling piece
+    index_type piece_pos;
+    size_t piece_n_moves;
+
+    // Define the score
+    int score;
+};
+
+void start_game(Game&);
+void start_piece(Game&);
+int move_piece(Cmd direction, board_type const& board,  piece_type& piece, index_type& pos);
 void rotate_piece(piece_type& piece, Cmd direction);
-void check_lines();
+void collapse_rows(Game&);
 
 using namespace std;
 
-// Define the board and piece matrices
-board_type board;
-piece_type piece;
-
-// Define the current position of the falling piece
-// i is the current y-coordinate (row) of the top-left corner of the falling piece
-// j is the current x-coordinate (column) of the top-left corner of the falling piece
-index_type piece_pos;
-size_t piece_n_moves;
-
-// Define the score
-int score = 0;
-
 // Function to initialize the game
-void init_game() {
+void start_game(Game& game) {
     // Initialize the random number generator
     srand(time(nullptr));
 
     // Initialize the board
-    for (auto &row : board) {
+    for (auto &row : game.board) {
         for (auto &cell : row) {
             cell = false;
         }
     }
 
+    game.score = 0;
+
     // Generate the first piece
-    start_piece();
+    start_piece(game);
 }
 
 // Function to generate a new piece
-void start_piece()
+void start_piece(Game& game)
 {
     // Generate a random piece
     // Set the piece position variables
-    piece_pos =
+    game.piece_pos =
     {
         .i = 0,
         .j = (BOARD_WIDTH - 4) / 2
     };
-    piece_n_moves = 0;
+    game.piece_n_moves = 0;
 
-    select_piece(piece);
+    select_piece(game.piece);
 }
 
 // Function to move the falling piece
@@ -83,7 +87,7 @@ This function takes an integer parameter direction that specifies the direction 
 
 The function first updates the position of the falling piece according to the specified direction. It then checks for collisions by iterating over each cell in the falling piece and checking if it collides with any occupied cell on the game board. If a collision is detected, the function locks the falling piece in place by copying its cells to the corresponding cells on the game board and generates a new piece. Otherwise, the function simply returns.
 */
-int move_piece(Cmd direction, piece_type& piece, index_type& pos)
+int move_piece(Cmd direction, board_type const& board, piece_type& piece, index_type& pos)
 {
     // Move the piece in the specified direction
     if (direction == Cmd_Down)
@@ -160,8 +164,9 @@ This function checks each row of the game board from bottom to top to see if it 
 
 The function also increases the score by one for each complete row that is removed.
 */
-void check_lines()
+void collapse_rows(Game& game)
 {
+    auto& board = game.board;
     // Check each line for completeness
     // If a line is complete, remove it and shift all the lines above it down
     // Update the score
@@ -184,38 +189,22 @@ void check_lines()
                 // }
             }
             i++; // Check the same line again
-            score++; // Increase the score
-            print_board(board, piece, piece_pos);
-            printf("Score %d\n", score);
-            usleep(500 * 1000);
+            game.score++; // Increase the score
+            print_board(board, game.piece, game.piece_pos);
+            printf("Score %d\n", game.score);
+            usleep(1000 * 1000);
         }
-    }
-}
-
-// Function to print a piece
-template<typename T>
-void print_table(T const& table)
-{
-    cout << __func__ << endl;
-    for (typename T::size_type i = 0; i < table.size(); i++) {
-
-        for (typename T::size_type j = 0; j < table[i].size(); j++) {
-
-            bool occupied = table[i][j];
-            cout << (occupied ? 'o' : '.') << ' ';
-        }
-        cout << endl;
     }
 }
 
 int main()
 {
-    init_game();
-    print_table(piece);
+    Game game;
+    start_game(game);
     while (true)
     {
         // Print the game board
-        print_board(board, piece, piece_pos);
+        print_board(game.board, game.piece, game.piece_pos);
         char ch;
         cin >> ch;
         Cmd cmd;
@@ -247,7 +236,7 @@ int main()
         }
 
         // Move the falling piece down
-        int moved = move_piece(cmd, piece, piece_pos);
+        int moved = move_piece(cmd, game.board, game.piece, game.piece_pos);
         if (moved == Blocked)
         {
             cout << "Lateral blocked\n";
@@ -256,20 +245,20 @@ int main()
         {
             cout << "Moved\n";
             if (cmd == Cmd_Down)
-                piece_n_moves++;
+                game.piece_n_moves++;
         }
         else if (moved == Arrested)
         {
             // Fall arrested
             cout << "Fall arrested\n";
-            anchor(board, piece, piece_pos);
-            if (piece_n_moves == 0)
+            anchor(game.board, game.piece, game.piece_pos);
+            if (game.piece_n_moves == 0)
             {
-                cout << "Game over -- Score " << score << endl;
+                cout << "Game over -- Score " << game.score << endl;
                 return 0;
             }
             // Generate a new piece
-            start_piece();
+            start_piece(game);
         }
         else
         {
@@ -277,13 +266,13 @@ int main()
         }
 
         // Check for completed lines
-        int old_score = score;
-        check_lines();
-        if (old_score != score)
+        int old_score = game.score;
+        collapse_rows(game);
+        if (old_score != game.score)
         {
             // Print the game board
-            print_board(board, piece, piece_pos);
-            printf("Score %d --> %d\n", old_score, score);
+            print_board(game.board, game.piece, game.piece_pos);
+            printf("Score %d --> %d\n", old_score, game.score);
         }
     }
     return 0;

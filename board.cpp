@@ -19,7 +19,7 @@ void anchor(board_type& board,
 bool collide(board_type const& board, piece_type const& piece, size_t piece_y, int piece_x)
 {
     index_type const pos = {piece_y, piece_x};
-    printf("%s(%lu,%d)\n", __func__, pos.i, pos.j);
+    //printf("%s(%lu,%d)\n", __func__, pos.i, pos.j);
 
     // Check for collisions
     for (size_t i = 0; i < piece.size(); i++) {
@@ -29,7 +29,7 @@ bool collide(board_type const& board, piece_type const& piece, size_t piece_y, i
                 const int x = pos.j + j;
                 if (x < 0 || x >= BOARD_WIDTH || y >= BOARD_HEIGHT || board[y][x] != 0) {
                     // Collision detected, lock the piece in place
-                    cerr << "Collide piece(" << j << ',' << i << ") board(" << y << ',' << x << ")" << endl;
+                    //cerr << "Collide piece(" << j << ',' << i << ") board(" << y << ',' << x << ")" << endl;
                     return true;
                 }
             }
@@ -41,7 +41,7 @@ bool collide(board_type const& board, piece_type const& piece, size_t piece_y, i
 // Print the game board
 void print_board(board_type const& board, piece_type const& piece, index_type const& pos)
 {
-    cout << endl << "piece(" << pos.i << ','<<pos.j<<")\n";
+    //cout << endl << "piece(" << pos.i << ','<<pos.j<<")\n";
     for (size_t i = 0; i < board.size(); i++) {
 
         for (size_t j = 0; j < board[i].size(); j++) {
