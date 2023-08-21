@@ -1,7 +1,7 @@
 #include "board.hpp"
 #include <iostream>
 
-using std::cerr;  using std::endl;
+using std::cerr;  using std::cout;  using std::endl;
 
 // Lock the piece in place
 void anchor(board_type& board,
@@ -36,4 +36,25 @@ bool collide(board_type const& board, piece_type const& piece, size_t piece_y, i
         }
     }
     return false;
+}
+
+// Print the game board
+void print_board(board_type const& board, piece_type const& piece, index_type const& pos)
+{
+    cout << endl << "piece(" << pos.i << ','<<pos.j<<")\n";
+    for (size_t i = 0; i < board.size(); i++) {
+
+        for (size_t j = 0; j < board[i].size(); j++) {
+
+            bool occupied = board[i][j];
+            int li = i - pos.i;
+            int lj = j - pos.j;
+            if ((0 <= li && li < 4) && (0 <= lj && lj < 4))
+            {
+                occupied |= piece[li][lj];
+            }
+            cout << (occupied ? 'o' : '.') << ' ';
+        }
+        cout << endl;
+    }
 }

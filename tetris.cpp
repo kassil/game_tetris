@@ -30,7 +30,6 @@ void start_piece();
 int move_piece(Cmd direction, piece_type& piece, index_type& pos);
 void rotate_piece(piece_type& piece, Cmd direction);
 void check_lines();
-void print_board(board_type const& board, piece_type const& piece, index_type const& piece_pos);
 
 using namespace std;
 
@@ -155,31 +154,6 @@ void rotate_piece(piece_type& piece, Cmd direction)
         rotate_array(piece);
 }
 
-// Rotate 2D std::array by 90 degrees
-template <std::size_t N, std::size_t M>
-void rotate_array(std::array<std::array<cell_type, M>, N>& arr) {
-    // Transpose the array
-    transpose_array(arr);
-    // Reverse each row of the transposed array
-    for (std::size_t i = 0; i < N; i++) {
-        for (std::size_t j = 0; j < M/2; j++) {
-            std::swap(arr[i][j], arr[i][M-j-1]);
-        }
-    }
-}
-
-// Rotate 2D std::array by 90 degrees
-template <std::size_t N, std::size_t M>
-void transpose_array(std::array<std::array<cell_type, M>, N>& arr) {
-    // Transpose the array
-    for (std::size_t i = 0; i < N; i++) {
-        for (std::size_t j = i; j < M; j++) {
-            std::swap(arr[i][j], arr[j][i]);
-        }
-    }
-}
-
-
 // Function to check for completed lines
 /*
 This function checks each row of the game board from bottom to top to see if it is complete. A row is considered complete if all its cells are occupied. If a complete row is found, it is removed by setting all its cells to zero. Then, all the rows above it are shifted down by one cell to fill the gap. The function then checks the same row again, since a shifted row may also be complete. This process continues until all complete rows have been removed.
@@ -215,27 +189,6 @@ void check_lines()
             printf("Score %d\n", score);
             usleep(500 * 1000);
         }
-    }
-}
-
-// Print the game board
-void print_board(board_type const& board, piece_type const& piece, index_type const& pos)
-{
-    cout << endl << "piece(" << pos.i << ','<<pos.j<<")\n";
-    for (size_t i = 0; i < board.size(); i++) {
-
-        for (size_t j = 0; j < board[i].size(); j++) {
-
-            bool occupied = board[i][j];
-            int li = i - pos.i;
-            int lj = j - pos.j;
-            if ((0 <= li && li < 4) && (0 <= lj && lj < 4))
-            {
-                occupied |= piece[li][lj];
-            }
-            cout << (occupied ? 'o' : '.') << ' ';
-        }
-        cout << endl;
     }
 }
 
