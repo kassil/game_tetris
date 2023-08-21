@@ -13,3 +13,5 @@ if(MSVC)
 else()
   target_compile_options(${PROJECT_NAME} PRIVATE -Wall)
 endif()
+
+target_link_libraries(${PROJECT_NAME} ncurses)

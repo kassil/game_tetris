@@ -1,7 +1,8 @@
 #include "board.hpp"
-#include <iostream>
+#include "tetris.h"
+//#include <iostream>
 
-using std::cerr;  using std::cout;  using std::endl;
+//using std::cerr;  using std::cout;  using std::endl;
 
 // Lock the piece in place
 void anchor(board_type& board,
@@ -41,7 +42,7 @@ bool collide(board_type const& board, piece_type const& piece, size_t piece_y, i
 // Print the game board
 void print_board(board_type const& board, piece_type const& piece, index_type const& pos)
 {
-    //cout << endl << "piece(" << pos.i << ','<<pos.j<<")\n";
+    mvwprintw(main_win, 1, 1, "Score %d", -1);
     for (size_t i = 0; i < board.size(); i++) {
 
         for (size_t j = 0; j < board[i].size(); j++) {
@@ -53,8 +54,9 @@ void print_board(board_type const& board, piece_type const& piece, index_type co
             {
                 occupied |= piece[li][lj];
             }
-            cout << (occupied ? 'o' : '.') << ' ';
+            mvwprintw(main_win, 2+i, 2+2*j, "%c ", (occupied ? 'o' : '.'));
         }
-        cout << endl;
     }
+    box(main_win, 0, 0);
+    wrefresh(main_win);
 }

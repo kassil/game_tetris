@@ -2,7 +2,6 @@
 #include "my_array.tpp"
 #include "tetris.h"
 #include <array>
-#include <iostream>
 #include <cstdlib>
 #include <ctime>
 #include <unistd.h>
@@ -40,6 +39,13 @@ struct Game
     int score;
 };
 
+WINDOW* log_win;
+WINDOW* main_win;
+WINDOW* title_win;
+int max_y, max_x;
+int log_height;
+int main_height;
+
 void start_game(Game&);
 void start_piece(Game&);
 int move_piece(Cmd direction, board_type const& board,  piece_type& piece, index_type& pos);
@@ -49,7 +55,8 @@ void collapse_rows(Game&);
 using namespace std;
 
 // Function to initialize the game
-void start_game(Game& game) {
+void start_game(Game& game)
+{
     // Initialize the random number generator
     srand(time(nullptr));
 
@@ -145,7 +152,7 @@ int move_piece(Cmd direction, board_type const& board, piece_type& piece, index_
     }
     else
     {
-        fprintf(stderr,"%s(%d) unknown\n", __func__, direction);
+        wprintw(log_win, "%s(%d) unknown\n", __func__, direction);
         return Blocked;
     }
 }
@@ -191,7 +198,7 @@ void collapse_rows(Game& game)
             i++; // Check the same line again
             game.score++; // Increase the score
             print_board(board, game.piece, game.piece_pos);
-            printf("Score %d\n", game.score);
+            wprintw(log_win, "Score %d\n", game.score);
             usleep(1000 * 1000);
         }
     }
@@ -199,71 +206,123 @@ void collapse_rows(Game& game)
 
 int main()
 {
+    // Initialize ncurses
+    // initialize the screen, get the size of the terminal, and create two windows: a log window at the bottom and a main window at the top. The height of the log window is set to one fourth of the height of the terminal, and the height of the main window is set to the remaining three fourths of the height of the terminal.
+    initscr();
+    cbreak();
+    noecho();
+    keypad(stdscr, true);
+
+    // Get the size of the terminal
+    getmaxyx(stdscr, max_y, max_x);
+
+    // Define the size of the main window
+    main_height = BOARD_HEIGHT + 3;
+
+    // Define the size of the log window (height scales with the terminal)
+    log_height = std::max(max_y - main_height, 3);
+
+    //We also add a box around each window using the box function, and refresh the windows using the wrefresh function. Finally, we wait for a key press using the getch function, and clean up and exit using the delwin and endwin functions.
+
+    // Create the main window
+    int main_width = 3 + 2 * BOARD_WIDTH;
+    main_win = newwin(main_height, main_width, 0, 0);
+    box(main_win, 0, 0);
+    wrefresh(main_win);
+
+    // Create the log window
+    log_win = newwin(log_height, max_x, main_height, 0);
+    //box(log_win, 0, 0);
+    //wmove(log_win, 1, 1);
+    scrollok(log_win, TRUE);
+    wrefresh(log_win);
+
+    //std::list<std::string> log_lines;
+
     Game game;
     start_game(game);
+
     while (true)
     {
         // Print the game board
         print_board(game.board, game.piece, game.piece_pos);
-        char ch;
-        cin >> ch;
+        wrefresh(log_win);
+
+        int ch = getch();
         Cmd cmd;
-        if (cin)
+        switch(ch)
         {
-            switch(ch)
-            {
-            case 'a':
-                cmd = Cmd_Left;
-                break;
-            case 'd':
-                cmd = Cmd_Right;
-                break;
-            case 'q':
-                cmd = Cmd_RotL;
-                break;
-            case 'e':
-                cmd = Cmd_RotR;
-                break;
-            case 's':
-            default:
-                cmd = Cmd_Down;
-                break;
-            }
-        }
-        else
-        {
+        case KEY_RESIZE:
+            // Get the size of the terminal
+            getmaxyx(stdscr, max_y, max_x);
+            // Define the size of the log window (height scales with the terminal)
+            log_height = std::max(max_y - main_height, 3);
+            wresize(log_win, log_height, max_x);
+            wprintw(log_win, "Resize %dx%d %dx%d\n",max_y,max_x,log_height,max_x);
+            wrefresh(log_win);
+            continue;
+        case 'a':
+        case KEY_LEFT:
+            // Handle left arrow key
+            cmd = Cmd_Left;
+            break;
+        case 'd':
+        case KEY_RIGHT:
+            // Handle right arrow key
+            cmd = Cmd_Right;
+            break;
+        case 'q':
+            cmd = Cmd_RotL;
+            break;
+        case 'e':
+            cmd = Cmd_RotR;
+            break;
+        // case KEY_UP:
+        //     // Handle up arrow key
+        //     break;
+        case 's':
+        case KEY_DOWN:
+            // Handle down arrow key
             cmd = Cmd_Down;
+            break;
+        default:
+            wprintw(log_win, "Unknown key 0%o 0x%X %d\n", ch, ch, ch);
+            wrefresh(log_win);
+            continue;
         }
 
         // Move the falling piece down
         int moved = move_piece(cmd, game.board, game.piece, game.piece_pos);
         if (moved == Blocked)
         {
-            cout << "Lateral blocked\n";
+            wprintw(log_win, "Lateral blocked\n");
         }
         else if (moved == Moved)
         {
-            cout << "Moved\n";
+            wprintw(log_win, "Moved\n");
             if (cmd == Cmd_Down)
                 game.piece_n_moves++;
         }
         else if (moved == Arrested)
         {
             // Fall arrested
-            cout << "Fall arrested\n";
+            wprintw(log_win, "Fall arrested\n");
             anchor(game.board, game.piece, game.piece_pos);
             if (game.piece_n_moves == 0)
             {
-                cout << "Game over -- Score " << game.score << endl;
-                return 0;
+                wprintw(log_win, "Game over -- Score %d\n", game.score);
+                break;
             }
             // Generate a new piece
             start_piece(game);
         }
         else
         {
-            cerr << "Move result? " << moved << endl;
+            wprintw(log_win, "Move result? %d\n", moved);
         }
+        
+        // box(log_win, 0, 0);
+        wrefresh(log_win);
 
         // Check for completed lines
         int old_score = game.score;
@@ -272,8 +331,14 @@ int main()
         {
             // Print the game board
             print_board(game.board, game.piece, game.piece_pos);
-            printf("Score %d --> %d\n", old_score, game.score);
+            // Add a line of text to the log window
+            wprintw(log_win, "Score %d --> %d\n", old_score, game.score);
+            wrefresh(log_win);
         }
     }
+    // Clean up and exit
+    delwin(log_win);
+    delwin(main_win);
+    endwin();
     return 0;
 }
