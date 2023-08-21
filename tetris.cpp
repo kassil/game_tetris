@@ -1,3 +1,6 @@
+#include "board.hpp"
+#include "my_array.tpp"
+#include "tetris.h"
 #include <array>
 #include <iostream>
 #include <cstdlib>
@@ -13,40 +16,27 @@ enum Cmd {
     Cmd_RotR,
 };
 
-enum MoveResult {
+enum MoveResult
+{
     Blocked,
     Moved,
     Arrested,
 };
 
-typedef bool cell_type;
-
-struct index_type
-{
-    size_t i;
-    int j;
-};
-
-constexpr int    BOARD_WIDTH = 12;
-constexpr size_t BOARD_HEIGHT = 12;
+void select_piece(piece_type& piece);
 
 void init_game();
-void generate_piece();
-int move_piece(Cmd direction, std::array<std::array<cell_type, 4>, 4>& piece, index_type& pos);
-bool collide(std::array<std::array<cell_type, 4>, 4> const& piece, size_t piece_y, int piece_x);
-void anchor(std::array<std::array<cell_type, BOARD_WIDTH>, BOARD_HEIGHT>& board, std::array<std::array<cell_type, 4>, 4> const& piece, index_type const& piece_pos);
-void rotate_piece(std::array<std::array<cell_type, 4>, 4>& piece, Cmd direction);
+void start_piece();
+int move_piece(Cmd direction, piece_type& piece, index_type& pos);
+void rotate_piece(piece_type& piece, Cmd direction);
 void check_lines();
-void print_board(std::array<std::array<cell_type, BOARD_WIDTH>, BOARD_HEIGHT> const& board, std::array<std::array<cell_type, 4>, 4> const& piece, index_type const& piece_pos);
-
-template <std::size_t N, std::size_t M>
-void rotate_array(std::array<std::array<cell_type, M>, N>& arr);
+void print_board(board_type const& board, piece_type const& piece, index_type const& piece_pos);
 
 using namespace std;
 
 // Define the board and piece matrices
-std::array<std::array<cell_type, BOARD_WIDTH>, BOARD_HEIGHT> board;
-std::array<std::array<cell_type, 4>, 4> piece;
+board_type board;
+piece_type piece;
 
 // Define the current position of the falling piece
 // i is the current y-coordinate (row) of the top-left corner of the falling piece
@@ -70,11 +60,11 @@ void init_game() {
     }
 
     // Generate the first piece
-    generate_piece();
+    start_piece();
 }
 
 // Function to generate a new piece
-void generate_piece()
+void start_piece()
 {
     // Generate a random piece
     // Set the piece position variables
@@ -85,25 +75,7 @@ void generate_piece()
     };
     piece_n_moves = 0;
 
-    constexpr std::array<std::array<cell_type, 4>, 4> L_piece = {{
-        {0, 0, 0, 1},
-        {0, 0, 0, 1},
-        {0, 0, 0, 1},
-        {0, 0, 1, 1},
-    }};
-
-    constexpr std::array<std::array<cell_type, 4>, 4> I_piece = {{
-        {0, 0, 0, 1},
-        {0, 0, 0, 1},
-        {0, 0, 0, 1},
-        {0, 0, 0, 1},
-    }};
-
-    int r = rand();
-    if (r < RAND_MAX/2)
-        piece = L_piece;
-    else
-        piece = I_piece;
+    select_piece(piece);
 }
 
 // Function to move the falling piece
@@ -112,13 +84,13 @@ This function takes an integer parameter direction that specifies the direction 
 
 The function first updates the position of the falling piece according to the specified direction. It then checks for collisions by iterating over each cell in the falling piece and checking if it collides with any occupied cell on the game board. If a collision is detected, the function locks the falling piece in place by copying its cells to the corresponding cells on the game board and generates a new piece. Otherwise, the function simply returns.
 */
-int move_piece(Cmd direction, std::array<std::array<cell_type, 4>, 4>& piece, index_type& pos)
+int move_piece(Cmd direction, piece_type& piece, index_type& pos)
 {
     // Move the piece in the specified direction
     if (direction == Cmd_Down)
     {
         // Move down
-        if (collide(piece, pos.i + 1, pos.j))
+        if (collide(board, piece, pos.i + 1, pos.j))
         {
             return Arrested;
         }
@@ -131,7 +103,7 @@ int move_piece(Cmd direction, std::array<std::array<cell_type, 4>, 4>& piece, in
     else if (direction == Cmd_Left)
     {
         // Move left
-        if (!collide(piece, pos.i, pos.j - 1))
+        if (!collide(board, piece, pos.i, pos.j - 1))
         {
             pos.j--;
             return Moved;
@@ -144,7 +116,7 @@ int move_piece(Cmd direction, std::array<std::array<cell_type, 4>, 4>& piece, in
     else if (direction == Cmd_Right)
     {
         // Move right
-        if (!collide(piece, pos.i, pos.j + 1))
+        if (!collide(board, piece, pos.i, pos.j + 1))
         {
             pos.j++;
             return Moved;
@@ -156,9 +128,9 @@ int move_piece(Cmd direction, std::array<std::array<cell_type, 4>, 4>& piece, in
     }
     else if (direction == Cmd_RotL || direction == Cmd_RotR)
     {
-        std::array<std::array<cell_type, 4>, 4> rot_piece = piece;
+        piece_type rot_piece = piece;
         rotate_piece(rot_piece, direction);
-        if (collide(rot_piece, pos.i, pos.j))
+        if (collide(board, rot_piece, pos.i, pos.j))
         {
             return Blocked;
         }
@@ -175,43 +147,8 @@ int move_piece(Cmd direction, std::array<std::array<cell_type, 4>, 4>& piece, in
     }
 }
 
-bool collide(std::array<std::array<cell_type, 4>, 4> const& piece, size_t piece_y, int piece_x)
-{
-    index_type const pos = {piece_y, piece_x};
-    printf("%s(%lu,%d)\n", __func__, pos.i, pos.j);
-
-    // Check for collisions
-    for (size_t i = 0; i < piece.size(); i++) {
-        const size_t y = pos.i + i;
-        for (size_t j = 0; j < piece[i].size(); j++) {
-            if (piece[i][j]) {
-                const int x = pos.j + j;
-                if (x < 0 || x >= BOARD_WIDTH || y >= BOARD_HEIGHT || board[y][x] != 0) {
-                    // Collision detected, lock the piece in place
-                    cerr << "Collide piece(" << j << ',' << i << ") board(" << y << ',' << x << ")" << endl;
-                    return true;
-                }
-            }
-        }
-    }
-    return false;
-}
-
-// Lock the piece in place
-void anchor(std::array<std::array<cell_type, BOARD_WIDTH>, BOARD_HEIGHT>& board,
-    std::array<std::array<cell_type, 4>, 4> const& piece, index_type const& pos)
-{
-    for (size_t i = 0; i < piece.size(); i++) {
-        for (size_t j = 0; j < piece[i].size(); j++) {
-            if (piece[i][j]) {
-                board[pos.i + i][pos.j + j] = piece[i][j];
-            }
-        }
-    }
-}
-
 // Rotate the falling piece in the specified direction
-void rotate_piece(std::array<std::array<cell_type, 4>, 4>& piece, Cmd direction)
+void rotate_piece(piece_type& piece, Cmd direction)
 {
     size_t n_iter = (Cmd_RotL == direction) ? 3 : 1;
     for(size_t i = 0; i < n_iter; ++i)
@@ -222,15 +159,22 @@ void rotate_piece(std::array<std::array<cell_type, 4>, 4>& piece, Cmd direction)
 template <std::size_t N, std::size_t M>
 void rotate_array(std::array<std::array<cell_type, M>, N>& arr) {
     // Transpose the array
-    for (std::size_t i = 0; i < N; i++) {
-        for (std::size_t j = i; j < M; j++) {
-            std::swap(arr[i][j], arr[j][i]);
-        }
-    }
+    transpose_array(arr);
     // Reverse each row of the transposed array
     for (std::size_t i = 0; i < N; i++) {
         for (std::size_t j = 0; j < M/2; j++) {
             std::swap(arr[i][j], arr[i][M-j-1]);
+        }
+    }
+}
+
+// Rotate 2D std::array by 90 degrees
+template <std::size_t N, std::size_t M>
+void transpose_array(std::array<std::array<cell_type, M>, N>& arr) {
+    // Transpose the array
+    for (std::size_t i = 0; i < N; i++) {
+        for (std::size_t j = i; j < M; j++) {
+            std::swap(arr[i][j], arr[j][i]);
         }
     }
 }
@@ -275,7 +219,7 @@ void check_lines()
 }
 
 // Print the game board
-void print_board(std::array<std::array<cell_type, BOARD_WIDTH>, BOARD_HEIGHT> const& board, std::array<std::array<cell_type, 4>, 4> const& piece, index_type const& pos)
+void print_board(board_type const& board, piece_type const& piece, index_type const& pos)
 {
     cout << endl << "piece(" << pos.i << ','<<pos.j<<")\n";
     for (size_t i = 0; i < board.size(); i++) {
@@ -372,7 +316,7 @@ int main()
                 return 0;
             }
             // Generate a new piece
-            generate_piece();
+            start_piece();
         }
         else
         {
