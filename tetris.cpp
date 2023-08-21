@@ -39,13 +39,6 @@ struct Game
     int score;
 };
 
-WINDOW* log_win;
-WINDOW* main_win;
-WINDOW* title_win;
-int max_y, max_x;
-int log_height;
-int main_height;
-
 void start_game(Game&);
 void start_piece(Game&);
 int move_piece(Cmd direction, board_type const& board,  piece_type& piece, index_type& pos);
@@ -152,7 +145,7 @@ int move_piece(Cmd direction, board_type const& board, piece_type& piece, index_
     }
     else
     {
-        wprintw(log_win, "%s(%d) unknown\n", __func__, direction);
+        wprintw(mycurses->log_win, "%s(%d) unknown\n", __func__, direction);
         return Blocked;
     }
 }
@@ -191,26 +184,21 @@ void collapse_rows(Game& game)
             // Shift all the lines above it down
             for (int k = i - 1; k >= 0; k--) {
                 std::copy(board[k].begin(), board[k].end(), board[k+1].begin());
-                // for (size_t j = 0; j < BOARD_WIDTH; j++) {
-                //     board[k + 1][j] = board[k][j];
-                // }
             }
             i++; // Check the same line again
             game.score++; // Increase the score
+            mycurses->updateScore(game.score);
             print_board(board, game.piece, game.piece_pos);
-            wprintw(log_win, "Score %d\n", game.score);
+            wprintw(mycurses->log_win, "Score %d\n", game.score);
+            wrefresh(mycurses->log_win);
             usleep(1000 * 1000);
         }
     }
 }
 
-MyCurses* mycurses;
-
 int main()
 {
     MyCurses curses;
-    mycurses = &curses;
-
     Game game;
     start_game(game);
 
@@ -218,20 +206,13 @@ int main()
     {
         // Print the game board
         print_board(game.board, game.piece, game.piece_pos);
-        wrefresh(log_win);
 
-        int ch = getch();
+        int ch = wgetch(mycurses->log_win);
         Cmd cmd;
         switch(ch)
         {
         case KEY_RESIZE:
-            // Get the size of the terminal
-            getmaxyx(stdscr, max_y, max_x);
-            // Define the size of the log window (height scales with the terminal)
-            log_height = std::max(max_y - main_height, 3);
-            wresize(log_win, log_height, max_x);
-            wprintw(log_win, "Resize %dx%d %dx%d\n",max_y,max_x,log_height,max_x);
-            wrefresh(log_win);
+            mycurses->resize();
             continue;
         case 'a':
         case KEY_LEFT:
@@ -257,9 +238,15 @@ int main()
             // Handle down arrow key
             cmd = Cmd_Down;
             break;
+        case 27: //ESC
+            if (dialog_quit())
+                return 0;
+            else
+                continue;
+            break;
         default:
-            wprintw(log_win, "Unknown key 0%o 0x%X %d\n", ch, ch, ch);
-            wrefresh(log_win);
+            wprintw(mycurses->log_win, "Unknown key 0%o 0x%X %d\n", ch, ch, ch);
+            wrefresh(mycurses->log_win);
             continue;
         }
 
@@ -267,22 +254,22 @@ int main()
         int moved = move_piece(cmd, game.board, game.piece, game.piece_pos);
         if (moved == Blocked)
         {
-            wprintw(log_win, "Lateral blocked\n");
+            wprintw(mycurses->log_win, "Lateral blocked\n");
         }
         else if (moved == Moved)
         {
-            wprintw(log_win, "Moved\n");
+            wprintw(mycurses->log_win, "Moved\n");
             if (cmd == Cmd_Down)
                 game.piece_n_moves++;
         }
         else if (moved == Arrested)
         {
             // Fall arrested
-            wprintw(log_win, "Fall arrested\n");
+            wprintw(mycurses->log_win, "Fall arrested\n");
             anchor(game.board, game.piece, game.piece_pos);
             if (game.piece_n_moves == 0)
             {
-                wprintw(log_win, "Game over -- Score %d\n", game.score);
+                wprintw(mycurses->log_win, "Game over -- Score %d\n", game.score);
                 break;
             }
             // Generate a new piece
@@ -290,22 +277,22 @@ int main()
         }
         else
         {
-            wprintw(log_win, "Move result? %d\n", moved);
+            wprintw(mycurses->log_win, "Move result? %d\n", moved);
         }
         
         // box(log_win, 0, 0);
-        wrefresh(log_win);
+        wrefresh(mycurses->log_win);
 
         // Check for completed lines
         int old_score = game.score;
         collapse_rows(game);
         if (old_score != game.score)
         {
-            // Print the game board
-            print_board(game.board, game.piece, game.piece_pos);
+            // // Print the game board
+            // print_board(game.board, game.piece, game.piece_pos);
             // Add a line of text to the log window
-            wprintw(log_win, "Score %d --> %d\n", old_score, game.score);
-            wrefresh(log_win);
+            wprintw(mycurses->log_win, "Score %d --> %d\n", old_score, game.score);
+            wrefresh(mycurses->log_win);
         }
     }
     // Clean up and exit

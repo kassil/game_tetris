@@ -42,7 +42,6 @@ bool collide(board_type const& board, piece_type const& piece, size_t piece_y, i
 // Print the game board
 void print_board(board_type const& board, piece_type const& piece, index_type const& pos)
 {
-    mvwprintw(mycurses->main_win, 1, 1, "Score %d", -1);
     for (size_t i = 0; i < board.size(); i++) {
 
         for (size_t j = 0; j < board[i].size(); j++) {

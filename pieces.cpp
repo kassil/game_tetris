@@ -72,8 +72,11 @@ void select_piece(piece_type& piece)
     else if (r == 6)
         piece = Z_piece;
     else
+    {
         wprintw(mycurses->log_win, "rand out of range %d\n", r);
+        wrefresh(mycurses->log_win);
         //cerr << "rand out of range " << r << endl;
+    }
 
     // Mirror image
     r = rand_a(2);

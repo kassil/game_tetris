@@ -7,6 +7,9 @@ public:
     MyCurses();
     ~MyCurses();
 
+    void resize();
+    void updateScore(int score);
+
     WINDOW* log_win;
     WINDOW* main_win;
     // WINDOW* title_win;
@@ -16,5 +19,7 @@ public:
     int main_height;
     int main_width;
 };
+
+bool dialog_quit();
 
 extern MyCurses* mycurses;
