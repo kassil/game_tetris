@@ -1,4 +1,4 @@
-#include "tetris.h"
+#include "mycurses.h"
 #include "my_array.tpp"
 #include <iostream>
 #include <stdlib.h>  //rand
@@ -72,7 +72,7 @@ void select_piece(piece_type& piece)
     else if (r == 6)
         piece = Z_piece;
     else
-        wprintw(log_win, "rand out of range %d\n", r);
+        wprintw(mycurses->log_win, "rand out of range %d\n", r);
         //cerr << "rand out of range " << r << endl;
 
     // Mirror image

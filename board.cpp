@@ -1,5 +1,5 @@
 #include "board.hpp"
-#include "tetris.h"
+#include "mycurses.h"
 //#include <iostream>
 
 //using std::cerr;  using std::cout;  using std::endl;
@@ -42,7 +42,7 @@ bool collide(board_type const& board, piece_type const& piece, size_t piece_y, i
 // Print the game board
 void print_board(board_type const& board, piece_type const& piece, index_type const& pos)
 {
-    mvwprintw(main_win, 1, 1, "Score %d", -1);
+    mvwprintw(mycurses->main_win, 1, 1, "Score %d", -1);
     for (size_t i = 0; i < board.size(); i++) {
 
         for (size_t j = 0; j < board[i].size(); j++) {
@@ -54,9 +54,9 @@ void print_board(board_type const& board, piece_type const& piece, index_type co
             {
                 occupied |= piece[li][lj];
             }
-            mvwprintw(main_win, 2+i, 2+2*j, "%c ", (occupied ? 'o' : '.'));
+            mvwprintw(mycurses->main_win, 2+i, 2+2*j, "%c ", (occupied ? 'o' : '.'));
         }
     }
-    box(main_win, 0, 0);
-    wrefresh(main_win);
+    box(mycurses->main_win, 0, 0);
+    wrefresh(mycurses->main_win);
 }
